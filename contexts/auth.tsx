@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import BASE_URL from '../config.tsx';
 
 interface AuthState {
   token: string | null;
@@ -31,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const response = await fetch('http://localhost:8080/auth/login', {
+      const response = await fetch(BASE_URL + 'auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
