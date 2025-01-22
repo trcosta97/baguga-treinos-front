@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import BASE_URL from '../config.tsx';
+import BASE_URL from '../config';
 
 interface AuthState {
   token: string | null;
@@ -24,6 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function loadStorageData() {
       const token = await AsyncStorage.getItem('@BagugaTreino:token');
+
       setData({ token, isLoading: false });
     }
 
@@ -42,20 +43,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           password,
         }),
       });
-
+  
       if (!response.ok) {
         throw new Error('Login failed');
       }
-
-      const { token } = await response.json();
-
+  
+      const { token, userId } = await response.json();
+      console.log('Login Response:', { token, userId }); // Verifique a resposta do login
+  
       await AsyncStorage.setItem('@BagugaTreino:token', token);
-
+      await AsyncStorage.setItem('@BagugaTreino:userId', userId.toString());
+  
+      const storedUserId = await AsyncStorage.getItem('@BagugaTreino:userId');
+      console.log('Stored User ID after login:', storedUserId); // Verifique o ID do usuário armazenado
+  
       setData({ token, isLoading: false });
     } catch (error) {
+      console.error('Erro no login:', error); // Adicione log para erro
       throw error;
     }
   };
+  
+  
+  
+
 
   const signOut = async () => {
     await AsyncStorage.removeItem('@BagugaTreino:token');
