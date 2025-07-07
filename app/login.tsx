@@ -1,46 +1,40 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../contexts/auth';
-
-interface LoginResponse {
-  token: string;
-  // Adicione outros campos que sua API retorna
-}
-
-interface LoginError {
-  message: string;
-  // Adicione outros campos de erro que sua API pode retornar
-}
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const { signIn } = useAuth();
 
   const handleLogin = async () => {
+    // 1. Limpa erros anteriores e ativa o loading
+    setError('');
+    setLoading(true);
+
     try {
+      // 2. Chama a função signIn, que deve fazer tudo:
+      //    - Chamar a API
+      //    - Salvar o token e o userId no AsyncStorage
+      //    - Atualizar o estado do contexto
       await signIn(email, password);
 
-      // Simula uma resposta da API
-      const response = { ok: true, json: async () => ({ token: 'abc123' }) };
+      // 3. Se o signIn for bem-sucedido, ele deve navegar.
+      //    A navegação pode estar dentro do signIn ou aqui.
+      //    Se já estiver no signIn, esta linha pode ser removida.
+      router.replace('/(tabs)');
 
-      if (response.ok) {
-        const data: LoginResponse = await response.json();
-        // Aqui você pode salvar o token de autenticação
-        // await AsyncStorage.setItem('userToken', data.token);
-
-        // Navega para a tela principal com as tabs
-        router.replace('/(tabs)');
-      } else {
-        const errorData: LoginError = await response.json();
-        setError(errorData.message || 'Email ou senha inválidos');
-      }
-    } catch (err) {
-      setError('Erro ao conectar com o servidor');
-      console.error(err);
+    } catch (err: any) {
+      // 4. Se o signIn falhar, ele deve lançar um erro
+      setError(err.message || 'Email ou senha inválidos.');
+      console.error("Falha no login:", err);
+    } finally {
+      // 5. Desativa o loading
+      setLoading(false);
     }
   };
 
@@ -69,14 +63,20 @@ export default function LoginScreen() {
         <TouchableOpacity
           style={styles.button}
           onPress={handleLogin}
+          disabled={loading} // Desabilita o botão durante o login
         >
-          <Text style={styles.buttonText}>Entrar</Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Entrar</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
+// (Seus estilos continuam os mesmos aqui)
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -1,52 +1,100 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, {useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../contexts/auth';
-import { fetchUserData } from '../utils/fetchUserData';
+import { fetchUserData } from '../utils/fetchUserData'; // Verifique se o caminho está correto
+
+// Define a interface do usuário para clareza
+interface User {
+  name: string;
+  birthday: string;
+  email: string;
+}
 
 const HomeScreen = () => {
   const { token } = useAuth();
-  const [user, setUser] = useState<{ name: string; birthday: string; email: string } | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true); // Começa carregando
 
   useEffect(() => {
-    async function loadUserId() {
-      const storedUserId = await AsyncStorage.getItem('@BagugaTreino:userId');
-      console.log('Stored User ID:', storedUserId); // Verifique o ID do usuário armazenado
-      setUserId(storedUserId);
-    }
-
-    loadUserId();
-  }, []);
-
-  useEffect(() => {
-    async function loadUserData() {
-      if (token && userId) {
-        console.log('Fetching user data for ID:', userId); // Verifique o ID do usuário antes de buscar os dados
-        const userData = await fetchUserData(token, userId);
-        console.log('Fetched user data:', userData); // Verifique os dados do usuário
-        setUser(userData);
+    const loadAllData = async () => {
+      // Se não houver token, não há o que fazer.
+      if (!token) {
+        setError('Sessão inválida. Por favor, faça o login novamente.');
+        setLoading(false);
+        return;
       }
-    }
 
-    loadUserData();
-  }, [token, userId]);
+      try {
+        // Pega o ID do usuário do armazenamento
+        const userId = await AsyncStorage.getItem('@BagugaTreino:userId');
+        if (!userId) {
+          throw new Error('ID do usuário não foi encontrado no dispositivo.');
+        }
 
-  if (!user) {
+        // Com token e userId em mãos, busca os dados na API
+        const userData = await fetchUserData(token, userId);
+        if (!userData) {
+          throw new Error('O servidor não retornou os dados do usuário.');
+        }
+
+        setUser(userData);
+
+      } catch (err: any) {
+        console.error("Erro ao carregar dados da HomeScreen:", err);
+        setError(err.message || 'Ocorreu um erro ao buscar suas informações.');
+      } finally {
+        // ESSENCIAL: Garante que o "loading" termine, não importa se deu certo ou errado
+        setLoading(false);
+      }
+    };
+
+    loadAllData();
+  }, [token]); // O efeito roda quando o token estiver disponível
+
+  // --- Lógica de Renderização ---
+
+  // 1. Enquanto estiver carregando, mostra o indicador
+  if (loading) {
     return (
       <View style={styles.container}>
-        <Text>Loading...</Text>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={{ marginTop: 10 }}>Carregando...</Text>
       </View>
     );
   }
 
-  console.log('Rendering user data:', user); // Adicione log para verificar a renderização
+  // 2. Se deu algum erro, mostra o erro
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
+  }
 
+  // 3. Se tudo deu certo, mostra os dados do usuário
+  if (user) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.greeting}>Olá, {user.name}!</Text>
+        <View style={styles.infoBox}>
+          <Text style={styles.infoLabel}>Nome:</Text>
+          <Text style={styles.infoValue}>{user.name}</Text>
+          <Text style={styles.infoLabel}>Aniversário:</Text>
+          <Text style={styles.infoValue}>{user.birthday}</Text>
+          <Text style={styles.infoLabel}>Email:</Text>
+          <Text style={styles.infoValue}>{user.email}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // 4. Fallback: se não estiver carregando, não tiver erro, mas não tiver usuário
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Nome: {user?.name}</Text>
-      <Text style={styles.text}>Aniversário: {user?.birthday}</Text>
-      <Text style={styles.text}>Email: {user?.email}</Text>
+      <Text>Não foi possível carregar as informações.</Text>
     </View>
   );
 };
@@ -56,10 +104,39 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f0f2f5',
+    padding: 20,
   },
-  text: {
+  errorText: {
     fontSize: 18,
-    marginVertical: 10,
+    color: 'red',
+    textAlign: 'center',
+  },
+  greeting: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    marginBottom: 30,
+  },
+  infoBox: {
+    width: '100%',
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 10,
+  },
+  infoValue: {
+    fontSize: 18,
+    color: '#000',
+    marginBottom: 5,
   },
 });
 
