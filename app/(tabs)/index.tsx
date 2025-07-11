@@ -1,8 +1,9 @@
-import React, {useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../contexts/auth';
 import { fetchUserData } from '../utils/fetchUserData'; // Verifique se o caminho está correto
+import { fetchUserWorkouts } from '../utils/fetchUserWorkouts'; // Verifique se o caminho está correto
 
 // Define a interface do usuário para clareza
 interface User {
@@ -14,6 +15,7 @@ interface User {
 const HomeScreen = () => {
   const { token } = useAuth();
   const [user, setUser] = useState<User | null>(null);
+  const [workouts, setWorkouts] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true); // Começa carregando
 
@@ -39,7 +41,13 @@ const HomeScreen = () => {
           throw new Error('O servidor não retornou os dados do usuário.');
         }
 
+        const userWorkouts = await fetchUserWorkouts(token, userId);
+        if (!userWorkouts) {
+          throw new Error('O servidor não retornou os dados dos treinos do usuário.');
+        }
+
         setUser(userData);
+        setWorkouts(userWorkouts);
 
       } catch (err: any) {
         console.error("Erro ao carregar dados da HomeScreen:", err);
@@ -86,6 +94,25 @@ const HomeScreen = () => {
           <Text style={styles.infoValue}>{user.birthday}</Text>
           <Text style={styles.infoLabel}>Email:</Text>
           <Text style={styles.infoValue}>{user.email}</Text>
+        </View>
+        <View>
+          <Text style={styles.infoLabel}>Últimos treinos:</Text>
+          {workouts.length > 0 ? (
+            // 1. Limita o array para os 5 primeiros itens
+            workouts.slice(0, 5).map((workout, index) => {
+              // 2. Formata a data dentro do map
+              const date = new Date(workout.registerTime);
+              const formattedDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+
+              return (
+                <Text key={index} style={styles.infoValue}>
+                  {workout.name} - {formattedDate}
+                </Text>
+              );
+            })
+          ) : (
+            <Text style={styles.infoValue}>Nenhum treino encontrado.</Text>
+          )}
         </View>
       </View>
     );
