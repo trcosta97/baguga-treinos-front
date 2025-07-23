@@ -82,11 +82,12 @@ const HomeScreen = () => {
     );
   }
 
-  // 3. Se tudo deu certo, mostra os dados do usuário
+  // Mostra os dados do usuário e os últimos treinos
   if (user) {
     return (
       <View style={styles.container}>
         <Text style={styles.greeting}>Olá, {user.name}!</Text>
+        {/* Exibe as informações do usuário */}
         <View style={styles.infoBox}>
           <Text style={styles.infoLabel}>Nome:</Text>
           <Text style={styles.infoValue}>{user.name}</Text>
@@ -95,12 +96,11 @@ const HomeScreen = () => {
           <Text style={styles.infoLabel}>Email:</Text>
           <Text style={styles.infoValue}>{user.email}</Text>
         </View>
+        {/*Exibe os últimos treinos do usuário */}
         <View>
           <Text style={styles.infoLabel}>Últimos treinos:</Text>
           {workouts.length > 0 ? (
-            // 1. Limita o array para os 5 primeiros itens
             workouts.slice(0, 5).map((workout, index) => {
-              // 2. Formata a data dentro do map
               const date = new Date(workout.registerTime);
               const formattedDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
 
